@@ -7,6 +7,6 @@ Oriens is a visual localization project designed to estimate a vehicle's positio
 Oriens uses OrienterNet, a deep learning model for estimating the orientation of objects in images. To install Oriens, clone the repository and install the required dependencies using the following commands:
 
 ```bash
-git clone --recursive https://github.com/wojino/maploc
+git clone --recursive https://github.com/wojino/Oriens
 pip install -r requirements.txt
 ```
