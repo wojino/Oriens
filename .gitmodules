@@ -1,0 +1,3 @@
+[submodule "oriens/maploc"]
+	path = oriens/maploc
+	url = https://github.com/wojino/maploc
