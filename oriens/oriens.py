@@ -18,7 +18,7 @@ from maploc.utils.viz_localization import (
 # To reduce the memory usage, we can reduce the tile size in the next cell.
 demo = Demo(num_rotations=256, device="cpu")
 
-image_path = "query_zurich_1.jpg"
+image_path = "experiments/query_zurich_1.jpg"
 prior_address = "ETH CAB Zurich"
 
 image, camera, gravity, proj, bbox = demo.read_input_image(
@@ -49,4 +49,4 @@ ax = plt.gcf().axes[0]
 ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
 plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
 add_circle_inset(ax, uv)
-plt.savefig("localization.png", dpi=300, bbox_inches="tight")
+plt.savefig("experiments/localization.png", dpi=300, bbox_inches="tight")
