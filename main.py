@@ -15,6 +15,7 @@ if __name__ == "__main__":
 
     gps = bm.get_gps_dataframe()
     image = bm.get_image_dataframe()
+    # attitute = bm.get_attitude_dataframe()
 
     original = []
     prediction = []

@@ -10,6 +10,7 @@ class BagManager:
         self.bag = rosbag.Bag(bag_file)
         self.gps_data = []
         self.camera_data = []
+        self.attitude_data = []
 
     def get_gps_dataframe(self):
         for _, msg, t in self.bag.read_messages(topics=["/mavros/sdcstatus/gpsrawint"]):
@@ -21,9 +22,11 @@ class BagManager:
                     msg.lon / 1e7,
                 ]
             )
+
         self.gps_data = pd.DataFrame(
             self.gps_data, columns=["sec", "nsec", "lat", "lon"]
         )
+
         return self.gps_data
 
     def get_image_dataframe(self):
@@ -45,7 +48,29 @@ class BagManager:
             self.camera_data.append(
                 [msg.header.stamp.secs, msg.header.stamp.nsecs, img]
             )
+
         self.camera_data = pd.DataFrame(
             self.camera_data, columns=["sec", "nsec", "img"]
         )
+
         return self.camera_data
+
+    def get_attitude_dataframe(self):
+        for _, msg, t in self.bag.read_messages(
+            topics=["/mavros/sdcstatus/attitudeenu"]
+        ):
+            self.attitude_data.append(
+                [
+                    msg.header.stamp.secs,
+                    msg.header.stamp.nsecs,
+                    msg.roll,
+                    msg.pitch,
+                    msg.yaw,
+                ]
+            )
+
+        self.attitude_data = pd.DataFrame(
+            self.attitude_data, columns=["sec", "nsec", "roll", "pitch", "yaw"]
+        )
+
+        return self.attitude_data
