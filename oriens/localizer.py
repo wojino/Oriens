@@ -30,7 +30,7 @@ class Localizer:
         image,
         prior_latlon,
         focal_length=368,
-        tile_size_meters=64,
+        tile_size_meters=8,
         num_rotations=256,
         device="cuda",
     ):
@@ -43,8 +43,10 @@ class Localizer:
     def get_image_data(self):  # Reconstructed function of read_input_image
         image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
 
+        start = time.time()
         gravity, camera = self.demo.calibrator.run(image, self.focal_length)
         logger.info("Using (roll, pitch) %s.", gravity)
+        print("Time taken for calibrator:", time.time() - start)
 
         latlon = self.prior_latlon
         proj = Projection(*latlon)
@@ -56,9 +58,12 @@ class Localizer:
 
     @timer
     def localize(self):
+        start = time.time()
         # Get the image data
         image, camera, gravity, proj, bbox = self.get_image_data()
+        print("Time taken for image data:", time.time() - start)
 
+        start = time.time()
         # Query OpenStreetMap for this area
         tiler = TileManager.from_bbox(
             proj,
@@ -67,6 +72,7 @@ class Localizer:
             path=Path("cache/osm.json"),
         )
         canvas = tiler.query(bbox)
+        print("Time taken for querying OSM:", time.time() - start)
 
         start = time.time()
         # Run the inference
