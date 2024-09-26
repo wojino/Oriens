@@ -58,4 +58,4 @@ class Visualizer:
         plt.grid(True)
         plt.axis("equal")
 
-        plt.savefig("oriens/experiments/prediction.png", dpi=300, bbox_inches="tight")
+        plt.savefig("oriens/experiments/pred.png", dpi=300, bbox_inches="tight")

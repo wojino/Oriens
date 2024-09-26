@@ -1,11 +1,25 @@
 import matplotlib.pyplot as plt
 import cv2
 
+import time
+
+from oriens.utils import timer
+
 from oriens.maploc import logger
 from oriens.maploc.demo import Demo
 from oriens.maploc.osm.tiling import TileManager
 from oriens.maploc.utils.exif import EXIF
 from oriens.maploc.utils.geo import BoundaryBox, Projection
+
+from oriens.maploc.osm.viz import GeoPlotter
+from oriens.maploc.osm.tiling import TileManager
+from oriens.maploc.osm.viz import Colormap, plot_nodes
+from oriens.maploc.utils.viz_2d import plot_images, features_to_RGB
+from oriens.maploc.utils.viz_localization import (
+    likelihood_overlay,
+    plot_dense_rotations,
+    add_circle_inset,
+)
 
 
 class Localizer:
@@ -33,9 +47,12 @@ class Localizer:
         latlon = self.prior_latlon
         proj = Projection(*latlon)
         center = proj.project(latlon)
+        print("center", center)
+        print("origin", proj.unproject(center))
         bbox = BoundaryBox(center, center) + self.tile_size_meters
         return image, camera, gravity, proj, bbox
 
+    @timer
     def localize(self):
         # Get the image data
         image, camera, gravity, proj, bbox = self.get_image_data()
@@ -46,11 +63,45 @@ class Localizer:
         )
         canvas = tiler.query(bbox)
 
+        start = time.time()
         # Run the inference
         uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
             image, camera, canvas, gravity=gravity
         )
 
         latlon = proj.unproject(uv)
+        print("Time taken for inference:", time.time() - start)
+
+        print("uv", uv)
+        print("pred", latlon)
 
         return latlon, yaw
+
+    def localize_full(self):
+        image, camera, gravity, proj, bbox = self.get_image_data()
+
+        tiler = TileManager.from_bbox(
+            proj, bbox + 10, self.demo.config.data.pixel_per_meter
+        )
+        canvas = tiler.query(bbox)
+
+        map_viz = Colormap.apply(canvas.raster)
+        plot_images([image, map_viz], titles=["input image", "OpenStreetMap raster"])
+        plot_nodes(1, canvas.raster[2], fontsize=6, size=10)
+
+        # Run the inference
+        uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
+            image, camera, canvas, gravity=gravity
+        )
+
+        # Visualize the predictions
+        overlay = likelihood_overlay(
+            prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
+        )
+        (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
+        plot_images([overlay, neural_map_rgb], titles=["prediction", "neural map"])
+        ax = plt.gcf().axes[0]
+        ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
+        plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
+        add_circle_inset(ax, uv)
+        plt.savefig("oriens/experiments/full.png", dpi=300, bbox_inches="tight")

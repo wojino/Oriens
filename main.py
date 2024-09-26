@@ -30,11 +30,12 @@ if __name__ == "__main__":
         image = row["img"]  # BGR
 
         latlon, yaw = Localizer(image, prior_latlon).localize()
+        # Localizer(image, prior_latlon).localize_full()
 
         original.append(prior_latlon)
         prediction.append(latlon)
 
-        # break
+        break
 
     vis = Visualizer()
     # vis.plot_gps(gps)
