@@ -8,6 +8,14 @@ from oriens.bag_manager import BagManager
 from oriens.visualizer import Visualizer
 from oriens.localizer import Localizer
 
+from oriens.maploc.osm.download import get_osm
+from oriens.maploc.utils.geo import BoundaryBox
+from pathlib import Path
+
+CACHE_PATH = Path("cache/osm.json")
+bbox = BoundaryBox(min_=[35.5700, 129.1840], max_=[35.5770, 129.1930])
+
+osm_data = get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
 
 if __name__ == "__main__":
     logger.info("Get GPS and image data from the bag file.")

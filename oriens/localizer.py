@@ -21,6 +21,8 @@ from oriens.maploc.utils.viz_localization import (
     add_circle_inset,
 )
 
+from pathlib import Path
+
 
 class Localizer:
     def __init__(
@@ -59,7 +61,10 @@ class Localizer:
 
         # Query OpenStreetMap for this area
         tiler = TileManager.from_bbox(
-            proj, bbox + 10, self.demo.config.data.pixel_per_meter
+            proj,
+            bbox + 10,
+            self.demo.config.data.pixel_per_meter,
+            path=Path("cache/osm.json"),
         )
         canvas = tiler.query(bbox)
 
