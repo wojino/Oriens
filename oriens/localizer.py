@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import cv2
+import numpy as np
 
 import time
 
@@ -30,7 +31,7 @@ class Localizer:
         image,
         prior_latlon,
         focal_length=368,
-        tile_size_meters=8,
+        tile_size_meters=64,
         num_rotations=256,
         device="cuda",
     ):
@@ -88,31 +89,36 @@ class Localizer:
 
         return latlon, yaw
 
-    def localize_full(self):
-        image, camera, gravity, proj, bbox = self.get_image_data()
+    # def localize_full(self):
+    #     image, camera, gravity, proj, bbox = self.get_image_data()
 
-        tiler = TileManager.from_bbox(
-            proj, bbox + 10, self.demo.config.data.pixel_per_meter
-        )
-        canvas = tiler.query(bbox)
+    #     tiler = TileManager.from_bbox(
+    #         proj, bbox + 10, self.demo.config.data.pixel_per_meter
+    #     )
+    #     canvas = tiler.query(bbox)
 
-        map_viz = Colormap.apply(canvas.raster)
-        plot_images([image, map_viz], titles=["input image", "OpenStreetMap raster"])
-        plot_nodes(1, canvas.raster[2], fontsize=6, size=10)
+    #     map_viz = Colormap.apply(canvas.raster)
 
-        # Run the inference
-        uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
-            image, camera, canvas, gravity=gravity
-        )
+    #     faded = map_viz + 0.5 * (1 - map_viz)
+    #     rgb = np.clip(faded, 0, 1)
+    #     plot_images([image, rgb], titles=["input image", "OpenStreetMap raster"])
 
-        # Visualize the predictions
-        overlay = likelihood_overlay(
-            prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
-        )
-        (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
-        plot_images([overlay, neural_map_rgb], titles=["prediction", "neural map"])
-        ax = plt.gcf().axes[0]
-        ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
-        plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
-        add_circle_inset(ax, uv)
-        plt.savefig("oriens/experiments/full.png", dpi=300, bbox_inches="tight")
+    #     # plot_images([image, map_viz], titles=["input image", "OpenStreetMap raster"])
+    #     # plot_nodes(1, canvas.raster[2], fontsize=6, size=10)
+
+    #     # # Run the inference
+    #     # uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
+    #     #     image, camera, canvas, gravity=gravity
+    #     # )
+
+    #     # # Visualize the predictions
+    #     # overlay = likelihood_overlay(
+    #     #     prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
+    #     # )
+    #     # (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
+    #     # plot_images([overlay, neural_map_rgb], titles=["prediction", "neural map"])
+    #     # ax = plt.gcf().axes[0]
+    #     # ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
+    #     # plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
+    #     # add_circle_inset(ax, uv)
+    #     plt.savefig("oriens/experiments/full.png", dpi=300, bbox_inches="tight")
