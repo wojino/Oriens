@@ -12,10 +12,6 @@ from oriens.maploc.osm.download import get_osm
 from oriens.maploc.utils.geo import BoundaryBox
 from pathlib import Path
 
-CACHE_PATH = Path("cache/osm.json")
-bbox = BoundaryBox(min_=[35.5700, 129.1840], max_=[35.5770, 129.1930])
-
-osm_data = get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
 
 if __name__ == "__main__":
     logger.info("Get GPS and image data from the bag file.")
@@ -23,11 +19,19 @@ if __name__ == "__main__":
 
     gps = bm.get_gps_dataframe()
     image = bm.get_image_dataframe()
-    # attitute = bm.get_attitude_dataframe()
+    attitute = bm.get_attitude_dataframe()
+    logger.info("GPS and image data are loaded.")
+
+    logger.info("Get OSM data.")
+    CACHE_PATH = Path("cache/osm.json")
+    bbox = BoundaryBox(min_=[35.5700, 129.1840], max_=[35.5770, 129.1930])
+    osm_data = get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
+    logger.info("OSM data is downloaded.")
 
     original = []
     prediction = []
 
+    logger.info("Start loop for localization.")
     for idx, row in image.iterrows():
         gps_rows = gps[gps["sec"] == row["sec"]]
         if gps_rows.empty:
