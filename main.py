@@ -42,13 +42,13 @@ if __name__ == "__main__":
         image = row["img"]  # BGR
 
         latlon, yaw = Localizer(image, prior_latlon).localize()
-        # Localizer(image, prior_latlon).localize_full()
 
         original.append(prior_latlon)
         prediction.append(latlon)
 
-        break
+    logger.info("Plot the GPS data.")
+    vis = Visualizer(bbox)
+    vis.plot_gps(original, "blue")
+    vis.plot_gps(prediction, "red")
 
-    vis = Visualizer()
-    # vis.plot_gps(gps)
-    vis.plot_prediction(original, prediction)
+    vis.save_map("experiments/map.html")
