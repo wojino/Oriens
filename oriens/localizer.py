@@ -31,7 +31,7 @@ class Localizer:
         image,
         prior_latlon,
         focal_length=368,
-        tile_size_meters=64,
+        tile_size_meters=2,
         num_rotations=256,
         device="cuda",
     ):
@@ -52,8 +52,6 @@ class Localizer:
         latlon = self.prior_latlon
         proj = Projection(*latlon)
         center = proj.project(latlon)
-        print("center", center)
-        print("origin", proj.unproject(center))
         bbox = BoundaryBox(center, center) + self.tile_size_meters
         return image, camera, gravity, proj, bbox
 
@@ -83,9 +81,6 @@ class Localizer:
 
         latlon = proj.unproject(uv)
         print("Time taken for inference:", time.time() - start)
-
-        print("uv", uv)
-        print("pred", latlon)
 
         return latlon, yaw
 
