@@ -20,11 +20,12 @@ class BagManager:
                     msg.header.stamp.nsecs,
                     msg.lat / 1e7,
                     msg.lon / 1e7,
+                    msg.yaw,
                 ]
             )
 
         self.gps_data = pd.DataFrame(
-            self.gps_data, columns=["sec", "nsec", "lat", "lon"]
+            self.gps_data, columns=["sec", "nsec", "lat", "lon", "yaw"]
         )
 
         return self.gps_data

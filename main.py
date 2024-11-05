@@ -38,13 +38,15 @@ if __name__ == "__main__":
             continue
         gps_row = gps_rows.iloc[0]
 
-        prior_latlon = (gps_row["lat"], gps_row["lon"])
+        prior_latlonyaw = (gps_row["lat"], gps_row["lon"], gps_row["yaw"])
         image = row["img"]  # BGR
 
-        latlon, yaw = Localizer(image, prior_latlon).localize()
+        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(True)
 
-        original.append(prior_latlon)
-        prediction.append(latlon)
+        original.append(prior_latlonyaw)
+        prediction.append(latlonyaw)
+
+        break
 
     logger.info("Plot the GPS data.")
     vis = Visualizer(bbox)

@@ -41,6 +41,9 @@ class Localizer:
         self.focal_length = focal_length
         self.tile_size_meters = tile_size_meters
 
+    def generate_bbox(self, center):
+        return BoundaryBox(center, center) + self.tile_size_meters
+
     def get_image_data(self):  # Reconstructed function of read_input_image
         image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
 
@@ -52,11 +55,18 @@ class Localizer:
         latlon = self.prior_latlon
         proj = Projection(*latlon)
         center = proj.project(latlon)
-        bbox = BoundaryBox(center, center) + self.tile_size_meters
+        bbox = self.generate_bbox(center)
+
         return image, camera, gravity, proj, bbox
 
     @timer
-    def localize(self):
+    def localize(self, plot: bool):
+        if plot:
+            return self.localize_with_plot()
+        else:
+            return self.localize_without_plot()
+
+    def localize_without_plot(self):
         start = time.time()
         # Get the image data
         image, camera, gravity, proj, bbox = self.get_image_data()
@@ -84,36 +94,35 @@ class Localizer:
 
         return latlon, yaw
 
-    # def localize_full(self):
-    #     image, camera, gravity, proj, bbox = self.get_image_data()
+    def localize_with_plot(self):
+        start = time.time()
+        # Get the image data
+        image, camera, gravity, proj, bbox = self.get_image_data()
+        print("Time taken for image data:", time.time() - start)
 
-    #     tiler = TileManager.from_bbox(
-    #         proj, bbox + 10, self.demo.config.data.pixel_per_meter
-    #     )
-    #     canvas = tiler.query(bbox)
+        start = time.time()
+        # Query OpenStreetMap for this area
+        tiler = TileManager.from_bbox(
+            proj,
+            bbox + 10,
+            self.demo.config.data.pixel_per_meter,
+            path=Path("cache/osm.json"),
+        )
+        canvas = tiler.query(bbox)
+        print("Time taken for querying OSM:", time.time() - start)
 
-    #     map_viz = Colormap.apply(canvas.raster)
+        map_viz = Colormap.apply(canvas.raster)
+        plot_images([map_viz], titles=["OpenStreetMap raster"])
+        # plot_nodes(0, canvas.raster[2], fontsize=6, size=10)
+        plt.savefig("map_viz.png")
 
-    #     faded = map_viz + 0.5 * (1 - map_viz)
-    #     rgb = np.clip(faded, 0, 1)
-    #     plot_images([image, rgb], titles=["input image", "OpenStreetMap raster"])
+        start = time.time()
+        # Run the inference
+        uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
+            image, camera, canvas, gravity=gravity
+        )
 
-    #     # plot_images([image, map_viz], titles=["input image", "OpenStreetMap raster"])
-    #     # plot_nodes(1, canvas.raster[2], fontsize=6, size=10)
+        lat, lon = proj.unproject(uv)
+        print("Time taken for inference:", time.time() - start)
 
-    #     # # Run the inference
-    #     # uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
-    #     #     image, camera, canvas, gravity=gravity
-    #     # )
-
-    #     # # Visualize the predictions
-    #     # overlay = likelihood_overlay(
-    #     #     prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
-    #     # )
-    #     # (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
-    #     # plot_images([overlay, neural_map_rgb], titles=["prediction", "neural map"])
-    #     # ax = plt.gcf().axes[0]
-    #     # ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
-    #     # plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
-    #     # add_circle_inset(ax, uv)
-    #     plt.savefig("oriens/experiments/full.png", dpi=300, bbox_inches="tight")
+        return (lat, lon, yaw)
