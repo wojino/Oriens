@@ -31,7 +31,7 @@ class Localizer:
         image,
         prior_latlon,
         focal_length=368,
-        tile_size_meters=16,
+        tile_size_meters=32,
         num_rotations=256,
         device="cuda",
     ):
@@ -64,7 +64,6 @@ class Localizer:
         start = time.time()
         # Get the image data
         image, camera, gravity, proj, bbox = self.get_image_data()
-        logger.info(f"Time taken for image data: {time.time() - start}")
 
         start = time.time()
         # Query OpenStreetMap for this area
@@ -75,7 +74,6 @@ class Localizer:
             path=Path("cache/osm.json"),
         )
         canvas = tiler.query(bbox)
-        logger.info(f"Time taken for querying OSM: {time.time() - start}")
 
         start = time.time()
         # Run the inference
@@ -85,7 +83,6 @@ class Localizer:
 
         lat, lon = proj.unproject(canvas.to_xy(uv))
         yaw = yaw.item()
-        logger.info(f"Time taken for inference: {time.time() - start}")
 
         if image is not None:  # If image is provided, visualize the results
             # Visualize the OpenStreetMap raster
