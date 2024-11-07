@@ -16,8 +16,7 @@ class BagManager:
         for _, msg, t in self.bag.read_messages(topics=["/mavros/sdcstatus/gpsrawint"]):
             self.gps_data.append(
                 [
-                    msg.header.stamp.secs,
-                    msg.header.stamp.nsecs,
+                    t.to_sec(),
                     msg.lat / 1e7,
                     msg.lon / 1e7,
                     msg.yaw,
@@ -25,7 +24,7 @@ class BagManager:
             )
 
         self.gps_data = pd.DataFrame(
-            self.gps_data, columns=["sec", "nsec", "lat", "lon", "yaw"]
+            self.gps_data, columns=["time", "lat", "lon", "yaw"]
         )
 
         return self.gps_data
@@ -46,13 +45,9 @@ class BagManager:
 
             img = bridge.imgmsg_to_cv2(img_msg, desired_encoding="bgr8")
 
-            self.camera_data.append(
-                [msg.header.stamp.secs, msg.header.stamp.nsecs, img]
-            )
+            self.camera_data.append([t.to_sec(), img])
 
-        self.camera_data = pd.DataFrame(
-            self.camera_data, columns=["sec", "nsec", "img"]
-        )
+        self.camera_data = pd.DataFrame(self.camera_data, columns=["time", "img"])
 
         return self.camera_data
 
@@ -60,17 +55,11 @@ class BagManager:
         gps_df = self.get_gps_dataframe()
         image_df = self.get_image_dataframe()
 
-        gps_df["timestamp"] = gps_df["sec"] + gps_df["nsec"] * 1e-9
-        image_df["timestamp"] = image_df["sec"] + image_df["nsec"] * 1e-9
-
         synced_df = pd.pandas.merge_asof(
-            image_df, gps_df, on="timestamp", direction="nearest"
+            image_df, gps_df, on="time", direction="nearest"
         )
 
-        synced_df.drop(columns=["sec_x", "nsec_x", "sec_y", "nsec_y"], inplace=True)
-        cols = synced_df.columns.tolist()
-        cols = cols[1:] + cols[:1]
-        synced_df = synced_df[cols]  # Rearrange columns
+        # synced_df.drop(columns=["sec_x", "nsec_x", "sec_y", "nsec_y"], inplace=True)
 
         return synced_df
 

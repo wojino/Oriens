@@ -18,8 +18,6 @@ if __name__ == "__main__":
     bm = BagManager("experiments/20240410-1.bag")
 
     df = bm.get_synced_dataframe()
-    print(df.head())
-
     logger.info("GPS and image data are loaded.")
 
     logger.info("Get OSM data.")
@@ -36,12 +34,10 @@ if __name__ == "__main__":
         prior_latlonyaw = (row["lat"], row["lon"], row["yaw"])
         image = row["img"]
 
-        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(image)
+        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize()
 
         original.append(prior_latlonyaw)
         prediction.append(latlonyaw)
-
-        break
 
     logger.info("Plot the GPS data.")
     vis = Visualizer(bbox)
