@@ -56,22 +56,40 @@ class BagManager:
 
         return self.camera_data
 
-    def get_attitude_dataframe(self):
-        for _, msg, t in self.bag.read_messages(
-            topics=["/mavros/sdcstatus/attitudeenu"]
-        ):
-            self.attitude_data.append(
-                [
-                    msg.header.stamp.secs,
-                    msg.header.stamp.nsecs,
-                    msg.roll,
-                    msg.pitch,
-                    msg.yaw,
-                ]
-            )
+    def get_synced_dataframe(self):
+        gps_df = self.get_gps_dataframe()
+        image_df = self.get_image_dataframe()
 
-        self.attitude_data = pd.DataFrame(
-            self.attitude_data, columns=["sec", "nsec", "roll", "pitch", "yaw"]
+        gps_df["timestamp"] = gps_df["sec"] + gps_df["nsec"] * 1e-9
+        image_df["timestamp"] = image_df["sec"] + image_df["nsec"] * 1e-9
+
+        synced_df = pd.pandas.merge_asof(
+            image_df, gps_df, on="timestamp", direction="nearest"
         )
 
-        return self.attitude_data
+        synced_df.drop(columns=["sec_x", "nsec_x", "sec_y", "nsec_y"], inplace=True)
+        cols = synced_df.columns.tolist()
+        cols = cols[1:] + cols[:1]
+        synced_df = synced_df[cols]  # Rearrange columns
+
+        return synced_df
+
+    # def get_attitude_dataframe(self):
+    #     for _, msg, t in self.bag.read_messages(
+    #         topics=["/mavros/sdcstatus/attitudeenu"]
+    #     ):
+    #         self.attitude_data.append(
+    #             [
+    #                 msg.header.stamp.secs,
+    #                 msg.header.stamp.nsecs,
+    #                 msg.roll,
+    #                 msg.pitch,
+    #                 msg.yaw,
+    #             ]
+    #         )
+
+    #     self.attitude_data = pd.DataFrame(
+    #         self.attitude_data, columns=["sec", "nsec", "roll", "pitch", "yaw"]
+    #     )
+
+    #     return self.attitude_data

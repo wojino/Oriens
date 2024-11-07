@@ -17,9 +17,9 @@ if __name__ == "__main__":
     logger.info("Get GPS and image data from the bag file.")
     bm = BagManager("oriens/experiments/20240410-1.bag")
 
-    gps = bm.get_gps_dataframe()
-    image = bm.get_image_dataframe()
-    attitute = bm.get_attitude_dataframe()
+    df = bm.get_synced_dataframe()
+    print(df.head())
+
     logger.info("GPS and image data are loaded.")
 
     logger.info("Get OSM data.")
@@ -32,20 +32,9 @@ if __name__ == "__main__":
     prediction = []
 
     logger.info("Start loop for localization.")
-    for idx, row in image.iterrows():
-        if idx < 60:
-            continue
-        gps_rows = gps[gps["sec"] == row["sec"]]
-        attitute_rows = attitute[attitute["sec"] == row["sec"]]
-
-        if gps_rows.empty:
-            continue
-
-        gps_row = gps_rows.iloc[0]
-        attitute_row = attitute_rows.iloc[0]
-
-        prior_latlonyaw = (gps_row["lat"], gps_row["lon"], gps_row["yaw"])
-        image = row["img"]  # BGR
+    for idx, row in df.iterrows():
+        prior_latlonyaw = (row["lat"], row["lon"], row["yaw"])
+        image = row["img"]
 
         latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(image)
 
