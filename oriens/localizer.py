@@ -85,24 +85,26 @@ class Localizer:
         yaw = yaw.item()
 
         if image is not None:  # If image is provided, visualize the results
-            # Visualize the OpenStreetMap raster
             map_viz = Colormap.apply(canvas.raster)
-            plot_images(
-                [image, map_viz], titles=["Input Image", "OpenStreetMap raster"]
-            )
-            plot_nodes(1, canvas.raster[2], fontsize=6, size=10)
-            plt.savefig("experiments/map_viz.png")
-
-            # Visualize the prediction and the neural map
             overlay = likelihood_overlay(
                 prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
             )
             (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
-            plot_images([overlay, neural_map_rgb], titles=["Prediction", "Neural Map"])
-            ax = plt.gcf().axes[0]
+
+            # Visualize the results
+            plot_images(
+                [image, map_viz, overlay, neural_map_rgb],
+                titles=[
+                    "Input Image",
+                    "OpenStreetMap raster",
+                    "Prediction",
+                    "Neural Map",
+                ],
+            )
+            ax = plt.gcf().axes[2]
             ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
             plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
             # add_circle_inset(ax, uv)
-            plt.savefig("experiments/prediction.png")
+            plt.savefig("experiments/all.png")
 
         return (lat, lon, yaw)
