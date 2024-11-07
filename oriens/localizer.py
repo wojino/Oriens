@@ -31,7 +31,7 @@ class Localizer:
         image,
         prior_latlon,
         focal_length=368,
-        tile_size_meters=2,
+        tile_size_meters=16,
         num_rotations=256,
         device="cuda",
     ):
@@ -49,8 +49,8 @@ class Localizer:
 
         start = time.time()
         gravity, camera = self.demo.calibrator.run(image, self.focal_length)
-        logger.info("Using (roll, pitch) %s.", gravity)
-        print("Time taken for calibrator:", time.time() - start)
+        logger.info(f"Using (roll, pitch) {gravity}.")
+        logger.info(f"Time taken for calibrator: {time.time() - start}")
 
         latlon = self.prior_latlon
         proj = Projection(*latlon)
@@ -60,17 +60,11 @@ class Localizer:
         return image, camera, gravity, proj, bbox
 
     @timer
-    def localize(self, plot: bool):
-        if plot:
-            return self.localize_with_plot()
-        else:
-            return self.localize_without_plot()
-
-    def localize_without_plot(self):
+    def localize(self, image=None):
         start = time.time()
         # Get the image data
         image, camera, gravity, proj, bbox = self.get_image_data()
-        print("Time taken for image data:", time.time() - start)
+        logger.info(f"Time taken for image data: {time.time() - start}")
 
         start = time.time()
         # Query OpenStreetMap for this area
@@ -81,7 +75,7 @@ class Localizer:
             path=Path("cache/osm.json"),
         )
         canvas = tiler.query(bbox)
-        print("Time taken for querying OSM:", time.time() - start)
+        logger.info(f"Time taken for querying OSM: {time.time() - start}")
 
         start = time.time()
         # Run the inference
@@ -89,40 +83,29 @@ class Localizer:
             image, camera, canvas, gravity=gravity
         )
 
-        latlon = proj.unproject(uv)
-        print("Time taken for inference:", time.time() - start)
+        lat, lon = proj.unproject(canvas.to_xy(uv))
+        yaw = yaw.item()
+        logger.info(f"Time taken for inference: {time.time() - start}")
 
-        return latlon, yaw
+        if image is not None:  # If image is provided, visualize the results
+            # Visualize the OpenStreetMap raster
+            map_viz = Colormap.apply(canvas.raster)
+            plot_images(
+                [image, map_viz], titles=["Input Image", "OpenStreetMap raster"]
+            )
+            plot_nodes(1, canvas.raster[2], fontsize=6, size=10)
+            plt.savefig("experiments/map_viz.png")
 
-    def localize_with_plot(self):
-        start = time.time()
-        # Get the image data
-        image, camera, gravity, proj, bbox = self.get_image_data()
-        print("Time taken for image data:", time.time() - start)
-
-        start = time.time()
-        # Query OpenStreetMap for this area
-        tiler = TileManager.from_bbox(
-            proj,
-            bbox + 10,
-            self.demo.config.data.pixel_per_meter,
-            path=Path("cache/osm.json"),
-        )
-        canvas = tiler.query(bbox)
-        print("Time taken for querying OSM:", time.time() - start)
-
-        map_viz = Colormap.apply(canvas.raster)
-        plot_images([map_viz], titles=["OpenStreetMap raster"])
-        # plot_nodes(0, canvas.raster[2], fontsize=6, size=10)
-        plt.savefig("map_viz.png")
-
-        start = time.time()
-        # Run the inference
-        uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
-            image, camera, canvas, gravity=gravity
-        )
-
-        lat, lon = proj.unproject(uv)
-        print("Time taken for inference:", time.time() - start)
+            # Visualize the prediction and the neural map
+            overlay = likelihood_overlay(
+                prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
+            )
+            (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
+            plot_images([overlay, neural_map_rgb], titles=["Prediction", "Neural Map"])
+            ax = plt.gcf().axes[0]
+            ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
+            plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
+            # add_circle_inset(ax, uv)
+            plt.savefig("experiments/prediction.png")
 
         return (lat, lon, yaw)

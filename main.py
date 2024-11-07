@@ -33,15 +33,21 @@ if __name__ == "__main__":
 
     logger.info("Start loop for localization.")
     for idx, row in image.iterrows():
+        if idx < 60:
+            continue
         gps_rows = gps[gps["sec"] == row["sec"]]
+        attitute_rows = attitute[attitute["sec"] == row["sec"]]
+
         if gps_rows.empty:
             continue
+
         gps_row = gps_rows.iloc[0]
+        attitute_row = attitute_rows.iloc[0]
 
         prior_latlonyaw = (gps_row["lat"], gps_row["lon"], gps_row["yaw"])
         image = row["img"]  # BGR
 
-        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(True)
+        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(image)
 
         original.append(prior_latlonyaw)
         prediction.append(latlonyaw)

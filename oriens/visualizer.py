@@ -30,9 +30,7 @@ class Visualizer:
     def plot_gps(self, gps_points, color):
         # gps_points: List[Tuple[float, float, float]] (lat, lon, yaw)
         for i, point in enumerate(gps_points):
-            lat, lon, yaw_tensor = point
-            yaw = yaw_tensor.item()
-            print(lat, lon, yaw)
+            lat, lon, yaw = point
 
             # 현재 점에서 yaw 방향으로 0.1m(약 0.000001의 위도 차이)에 해당하는 점을 계산
             distance = 2 / 111320  # 0.1미터를 약 위도 경도로 변환
@@ -44,8 +42,6 @@ class Visualizer:
             # 새로운 점의 위치 계산
             end_lat = lat + delta_lat
             end_lon = lon + delta_lon
-
-            print(lat, lon, end_lat, end_lon)
 
             # 시작점에서 끝점까지의 선 추가
             folium.PolyLine(
