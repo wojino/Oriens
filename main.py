@@ -15,7 +15,7 @@ from pathlib import Path
 
 if __name__ == "__main__":
     logger.info("Get GPS and image data from the bag file.")
-    bm = BagManager("oriens/experiments/20240410-1.bag")
+    bm = BagManager("experiments/20240410-1.bag")
 
     df = bm.get_synced_dataframe()
     print(df.head())
