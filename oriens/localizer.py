@@ -60,7 +60,7 @@ class Localizer:
         return image, camera, gravity, proj, bbox
 
     @timer
-    def localize(self, image=None):
+    def localize(self, visualize=False, idx=0):
         start = time.time()
         # Get the image data
         image, camera, gravity, proj, bbox = self.get_image_data()
@@ -84,7 +84,7 @@ class Localizer:
         lat, lon = proj.unproject(canvas.to_xy(uv))
         yaw = yaw.item()
 
-        if image is not None:  # If image is provided, visualize the results
+        if visualize is True:
             map_viz = Colormap.apply(canvas.raster)
             overlay = likelihood_overlay(
                 prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
@@ -105,6 +105,6 @@ class Localizer:
             ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
             plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
             # add_circle_inset(ax, uv)
-            plt.savefig("experiments/all.png")
+            plt.savefig(f"experiments/plots/{idx:03d}.png")
 
         return (lat, lon, yaw)
