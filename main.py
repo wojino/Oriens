@@ -37,23 +37,20 @@ def monte_carlo(df, idx, num_samples=100):
         # 로컬라이제이션 수행 및 결과 저장
         latlonyaw.append(Localizer(image, perturbed_latlon).localize(False))
 
-    # 분석방법: 오차의 표준편차 계산
-    lat_error = [abs(lat - gps_latlon[0]) for lat, _, _ in latlonyaw]
-    lon_error = [abs(lon - gps_latlon[1]) for _, lon, _ in latlonyaw]
+    lat_mean, lon_mean, yaw_mean = np.mean(latlonyaw, axis=0)
+    lat_std, lon_std, yaw_std = np.std(latlonyaw, axis=0)
+    lat_meter_std = lat_std * meters_per_deg_lat
+    lon_meter_std = lon_std * meters_per_deg_lon
 
-    lat_std = np.std(lat_error)
-    lon_std = np.std(lon_error)
+    logger.info(f"Monte Carlo simulation results for {num_samples} samples.")
+    logger.info(
+        f"Prior: ({prior_latlonyaw[0]:.6f}, {prior_latlonyaw[1]:.6f}, yaw: {prior_latlonyaw[2]:.2f})"
+    )
 
-    # m단위 표준편차 계산
-    lat_std_m = lat_std * meters_per_deg_lat
-    lon_std_m = lon_std * meters_per_deg_lon
+    logger.info(f"Mean: ({lat_mean:.6f}, {lon_mean:.6f}, yaw: {yaw_mean:.2f})")
+    logger.info(f"Std: ({lat_std:.6f}, {lon_std:.6f}, yaw: {yaw_std:.2f})")
 
-    # 대각선 거리 계산
-    diag_error = np.sqrt(lat_std_m**2 + lon_std_m**2)
-
-    logger.info(f"Lat std: {lat_std:.6f} ({lat_std_m:.2f}m)")
-    logger.info(f"Lon std: {lon_std:.6f} ({lon_std_m:.2f}m)")
-    logger.info(f"Diagonal error: {diag_error:.2f}m")
+    logger.info(f"Std in meters: ({lat_meter_std:.3f}, {lon_meter_std:.3f})")
 
 
 def localization_loop(df):
@@ -93,5 +90,5 @@ if __name__ == "__main__":
     osm_data = get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
     logger.info("OSM data is downloaded.")
 
-    monte_carlo(df, 108)
+    monte_carlo(df, 208)
     # localization_loop(df)
