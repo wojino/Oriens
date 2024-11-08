@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
+import random
 
 from oriens import logger
 from oriens.bag_manager import BagManager
@@ -11,6 +12,72 @@ from oriens.localizer import Localizer
 from oriens.maploc.osm.download import get_osm
 from oriens.maploc.utils.geo import BoundaryBox
 from pathlib import Path
+
+
+def monte_carlo(df, idx, num_samples=100):
+    prior_latlonyaw = (df.loc[idx, "lat"], df.loc[idx, "lon"], df.loc[idx, "yaw"])
+    image = df.loc[idx, "img"]
+
+    gps_latlon = prior_latlonyaw[:2]
+    # 위도와 경도의 약 1미터 당 거리 변화 (단위: 위도 및 경도 1도 당 미터)
+    meters_per_deg_lat = 111_320  # 위도 1도 당 약 111.32km
+    meters_per_deg_lon = 111_320 * np.cos(
+        np.radians(gps_latlon[0])
+    )  # 경도 1도 당 거리 (위도에 따라 다름)
+
+    latlonyaw = []
+    for i in range(num_samples):
+        logger.info(f"Monte Carlo simulation: {i+1}/{num_samples}")
+
+        # 위도와 경도에 -4m ~ +4m 범위의 랜덤 오차 적용
+        lat_offset = random.uniform(-4, 4) / meters_per_deg_lat
+        lon_offset = random.uniform(-4, 4) / meters_per_deg_lon
+        perturbed_latlon = (gps_latlon[0] + lat_offset, gps_latlon[1] + lon_offset)
+
+        # 로컬라이제이션 수행 및 결과 저장
+        latlonyaw.append(Localizer(image, perturbed_latlon).localize(False))
+
+    # 분석방법: 오차의 표준편차 계산
+    lat_error = [abs(lat - gps_latlon[0]) for lat, _, _ in latlonyaw]
+    lon_error = [abs(lon - gps_latlon[1]) for _, lon, _ in latlonyaw]
+
+    lat_std = np.std(lat_error)
+    lon_std = np.std(lon_error)
+
+    # m단위 표준편차 계산
+    lat_std_m = lat_std * meters_per_deg_lat
+    lon_std_m = lon_std * meters_per_deg_lon
+
+    # 대각선 거리 계산
+    diag_error = np.sqrt(lat_std_m**2 + lon_std_m**2)
+
+    logger.info(f"Lat std: {lat_std:.6f} ({lat_std_m:.2f}m)")
+    logger.info(f"Lon std: {lon_std:.6f} ({lon_std_m:.2f}m)")
+    logger.info(f"Diagonal error: {diag_error:.2f}m")
+
+
+def localization_loop(df):
+    original = []
+    prediction = []
+
+    logger.info("Start loop for localization.")
+    for idx, row in df.iterrows():
+        prior_latlonyaw = (row["lat"], row["lon"], row["yaw"])
+        image = row["img"]
+
+        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(True, idx)
+
+        original.append(prior_latlonyaw)
+        prediction.append(latlonyaw)
+
+        # break
+
+    logger.info("Plot the GPS data.")
+    vis = Visualizer(bbox)
+    vis.plot_gps(original, "blue")
+    vis.plot_gps(prediction, "red")
+
+    vis.save_map("experiments/map.html")
 
 
 if __name__ == "__main__":
@@ -26,22 +93,5 @@ if __name__ == "__main__":
     osm_data = get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
     logger.info("OSM data is downloaded.")
 
-    original = []
-    prediction = []
-
-    logger.info("Start loop for localization.")
-    for idx, row in df.iterrows():
-        prior_latlonyaw = (row["lat"], row["lon"], row["yaw"])
-        image = row["img"]
-
-        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize()
-
-        original.append(prior_latlonyaw)
-        prediction.append(latlonyaw)
-
-    logger.info("Plot the GPS data.")
-    vis = Visualizer(bbox)
-    vis.plot_gps(original, "blue")
-    vis.plot_gps(prediction, "red")
-
-    vis.save_map("experiments/map.html")
+    monte_carlo(df, 108)
+    # localization_loop(df)
