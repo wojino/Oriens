@@ -14,6 +14,22 @@ from oriens.maploc.utils.geo import BoundaryBox
 from pathlib import Path
 
 
+def init():
+    logger.info("Get GPS and image data from the bag file.")
+    bm = BagManager("experiments/20240410-1.bag")
+
+    df = bm.get_synced_dataframe()
+    logger.info("GPS and image data are loaded.")
+
+    logger.info("Get OSM data.")
+    CACHE_PATH = Path("cache/osm.json")
+    bbox = BoundaryBox(min_=[35.5700, 129.1840], max_=[35.5770, 129.1930])
+    get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
+    logger.info("OSM data is downloaded.")
+
+    return df
+
+
 def monte_carlo(df, idx, num_samples=100):
     prior_latlonyaw = (df.loc[idx, "lat"], df.loc[idx, "lon"], df.loc[idx, "yaw"])
     image = df.loc[idx, "img"]
@@ -89,17 +105,7 @@ def localization(df, idx):
 
 
 if __name__ == "__main__":
-    logger.info("Get GPS and image data from the bag file.")
-    bm = BagManager("experiments/20240410-1.bag")
-
-    df = bm.get_synced_dataframe()
-    logger.info("GPS and image data are loaded.")
-
-    logger.info("Get OSM data.")
-    CACHE_PATH = Path("cache/osm.json")
-    bbox = BoundaryBox(min_=[35.5700, 129.1840], max_=[35.5770, 129.1930])
-    osm_data = get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
-    logger.info("OSM data is downloaded.")
+    df = init()
 
     # monte_carlo(df, 164)
     localization_loop(df)
