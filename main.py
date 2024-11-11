@@ -2,7 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
-import random
 
 from oriens import logger
 from oriens.bag_manager import BagManager
@@ -45,9 +44,9 @@ def monte_carlo(df, idx, num_samples=100):
     for i in range(num_samples):
         logger.info(f"Monte Carlo simulation in {idx+1}: {i+1}/{num_samples}")
 
-        # 위도와 경도에 -4m ~ +4m 범위의 랜덤 오차 적용
-        lat_offset = random.uniform(-4, 4) / meters_per_deg_lat
-        lon_offset = random.uniform(-4, 4) / meters_per_deg_lon
+        # 위도와 경도에 -4m ~ +4m 범위의 랜덤 오차 적용 (95퍼센트)
+        lat_offset = np.random.normal(0, 2) / meters_per_deg_lat
+        lon_offset = np.random.normal(0, 2) / meters_per_deg_lon
         perturbed_latlon = (gps_latlon[0] + lat_offset, gps_latlon[1] + lon_offset)
 
         # 로컬라이제이션 수행 및 결과 저장
