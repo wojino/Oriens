@@ -27,7 +27,7 @@ def monte_carlo(df, idx, num_samples=100):
 
     latlonyaw = []
     for i in range(num_samples):
-        logger.info(f"Monte Carlo simulation: {i+1}/{num_samples}")
+        logger.info(f"Monte Carlo simulation in {idx+1}: {i+1}/{num_samples}")
 
         # 위도와 경도에 -4m ~ +4m 범위의 랜덤 오차 적용
         lat_offset = random.uniform(-4, 4) / meters_per_deg_lat
@@ -59,15 +59,15 @@ def localization_loop(df):
 
     logger.info("Start loop for localization.")
     for idx, row in df.iterrows():
+        logger.info(f"Localization: {idx+1}/{len(df)}")
+
         prior_latlonyaw = (row["lat"], row["lon"], row["yaw"])
         image = row["img"]
 
-        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(False)
+        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(True, idx)
 
         original.append(prior_latlonyaw)
         prediction.append(latlonyaw)
-
-        break
 
     logger.info("Plot the GPS data.")
     vis = Visualizer(bbox)
@@ -78,6 +78,8 @@ def localization_loop(df):
 
 
 def localization(df, idx):
+    logger.info(f"Localization: {idx+1}/{len(df)}")
+
     prior_latlonyaw = (df.loc[idx, "lat"], df.loc[idx, "lon"], df.loc[idx, "yaw"])
     image = df.loc[idx, "img"]
 
@@ -100,5 +102,5 @@ if __name__ == "__main__":
     logger.info("OSM data is downloaded.")
 
     # monte_carlo(df, 164)
-    # localization_loop(df)
-    localization(df, 101)
+    localization_loop(df)
+    # localization(df, 101)
