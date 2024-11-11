@@ -62,12 +62,12 @@ def localization_loop(df):
         prior_latlonyaw = (row["lat"], row["lon"], row["yaw"])
         image = row["img"]
 
-        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(True, idx)
+        latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(False)
 
         original.append(prior_latlonyaw)
         prediction.append(latlonyaw)
 
-        # break
+        break
 
     logger.info("Plot the GPS data.")
     vis = Visualizer(bbox)
@@ -75,6 +75,15 @@ def localization_loop(df):
     vis.plot_gps(prediction, "red")
 
     vis.save_map("experiments/map.html")
+
+
+def localization(df, idx):
+    prior_latlonyaw = (df.loc[idx, "lat"], df.loc[idx, "lon"], df.loc[idx, "yaw"])
+    image = df.loc[idx, "img"]
+
+    latlonyaw = Localizer(image, prior_latlonyaw[:2]).localize(True, idx)
+
+    return latlonyaw
 
 
 if __name__ == "__main__":
@@ -90,5 +99,6 @@ if __name__ == "__main__":
     osm_data = get_osm(boundary_box=bbox, cache_path=CACHE_PATH, overwrite=False)
     logger.info("OSM data is downloaded.")
 
-    monte_carlo(df, 208)
+    # monte_carlo(df, 164)
     # localization_loop(df)
+    localization(df, 101)

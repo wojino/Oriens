@@ -77,7 +77,7 @@ class Localizer:
 
         start = time.time()
         # Run the inference
-        uv, yaw, prob, neural_map, image_rectified = self.demo.localize(
+        uv, yaw, prob, neural_map, image_rectified, neural_bev = self.demo.localize(
             image, camera, canvas, gravity=gravity
         )
 
@@ -90,18 +90,20 @@ class Localizer:
                 prob.numpy().max(-1), map_viz.mean(-1, keepdims=True)
             )
             (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
+            (neural_bev_rgb,) = features_to_RGB(neural_bev.numpy())
 
             # Visualize the results
             plot_images(
-                [image, map_viz, overlay, neural_map_rgb],
+                [image, map_viz, neural_bev_rgb, neural_map_rgb, overlay],
                 titles=[
                     "Input Image",
                     "OpenStreetMap raster",
-                    "Prediction",
+                    "Neural BEV",
                     "Neural Map",
+                    "Prediction",
                 ],
             )
-            ax = plt.gcf().axes[2]
+            ax = plt.gcf().axes[4]
             ax.scatter(*canvas.to_uv(bbox.center), s=5, c="red")
             plot_dense_rotations(ax, prob, w=0.005, s=1 / 25)
             # add_circle_inset(ax, uv)
