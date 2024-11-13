@@ -92,6 +92,8 @@ class Localizer:
             (neural_map_rgb,) = features_to_RGB(neural_map.numpy())
             (neural_bev_rgb,) = features_to_RGB(neural_bev.numpy())
 
+            self.overlay = overlay
+
             # Visualize the results
             plot_images(
                 [image, map_viz, neural_bev_rgb, neural_map_rgb, overlay],
