@@ -19,6 +19,7 @@ def init():
     bm = BagManager("experiments/20240410-1.bag")
 
     df = bm.get_synced_dataframe()
+    df = df.iloc[8:]
     logger.info("GPS and image data are loaded.")
 
     logger.info("Get OSM data.")
@@ -30,7 +31,7 @@ def init():
     return df
 
 
-def monte_carlo(df, idx, num_samples=100):
+def monte_carlo(df, idx, num_samples):
     prior_latlonyaw = (df.loc[idx, "lat"], df.loc[idx, "lon"], df.loc[idx, "yaw"])
     image = df.loc[idx, "img"]
 
@@ -57,7 +58,7 @@ def monte_carlo(df, idx, num_samples=100):
         latlonyaw.append(Localizer(image, perturbed_latlon).localize(False))
 
     l = Localizer(image, gps_latlon)
-    l.localize(True)
+    l.localize(True, idx)
     overlay = l.overlay
 
     latlonyaw = np.array(latlonyaw)
@@ -108,20 +109,20 @@ def monte_carlo(df, idx, num_samples=100):
 
     points_meters = [
         (
-            geodesic(plot_origin, (latlonyaw[0], plot_origin[1])).meters,
             geodesic(plot_origin, (plot_origin[0], latlonyaw[1])).meters,
+            geodesic(plot_origin, (latlonyaw[0], plot_origin[1])).meters,
         )
         for latlonyaw in latlonyaw
     ]
 
     ref_point_meters = (
-        geodesic(plot_origin, (reference_location[0], plot_origin[1])).meters,
         geodesic(plot_origin, (plot_origin[0], reference_location[1])).meters,
+        geodesic(plot_origin, (reference_location[0], plot_origin[1])).meters,
     )
 
     gps_point_meters = (
-        geodesic(plot_origin, (gps_latlon[0], plot_origin[1])).meters,
         geodesic(plot_origin, (plot_origin[0], gps_latlon[1])).meters,
+        geodesic(plot_origin, (gps_latlon[0], plot_origin[1])).meters,
     )
 
     plt.figure(figsize=(10, 10))
@@ -149,31 +150,35 @@ def monte_carlo(df, idx, num_samples=100):
     # distance와 yaw의 mean 및 std 텍스트 표시
     plt.text(
         1,
-        7,
+        10,
         f"Mean Distance: {mean_distance:.2f} m, Std Distance: {std_distance:.2f} m",
+        fontsize=20,
     )
     plt.text(
         1,
-        5,
+        7,
         f"Mean Yaw Error: {mean_yaw_error:.2f}°, Std Yaw Error: {std_yaw_error:.2f}°",
+        fontsize=20,
     )
 
     # GPS 좌표와 Reference 좌표 텍스트 표시
     plt.text(
         1,
-        3,
+        4,
         f"GPS Coordinates: Lat: {start_point[0]:.6f}, Lon: {start_point[1]:.6f}, Yaw: {prior_latlonyaw[2]:.2f}",
+        fontsize=20,
     )
     plt.text(
         1,
         1,
         f"Reference Coordinates: Lat: {reference_location[0]:.6f}, Lon: {reference_location[1]:.6f}, Yaw: {reference_location[2]:.2f}",
+        fontsize=20,
     )
 
     plt.savefig(f"experiments/plots/{idx:03d}_m.png")
 
 
-def monte_carlo_loop(df, num_samples=100):
+def monte_carlo_loop(df, num_samples):
     logger.info("Start loop for Monte Carlo simulation.")
     for idx, row in df.iterrows():
         monte_carlo(df, idx, num_samples)
@@ -213,6 +218,6 @@ if __name__ == "__main__":
     df = init()
 
     # monte_carlo(df, 164)
-    monte_carlo_loop(df, 100)
+    monte_carlo_loop(df, 10)
     # localization_loop(df)
     # localization(df, 101)
